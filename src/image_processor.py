@@ -16,9 +16,43 @@ from iptcinfo3 import IPTCInfo
 import pyexiv2
 
 class ImageProcessor:
-    def __init__(self, vision_client, gemini_model):
+    def __init__(self, vision_client, gemini_model, lang="fr"):
         self.vision_client = vision_client
         self.gemini_model = gemini_model
+        self.lang = lang
+        self._init_prompts()
+
+    def _init_prompts(self):
+        """Définit les prompts en fonction de la langue"""
+        self.prompts = {
+            "fr": {
+                "main": """Analyse cette image et retourne un JSON avec :
+                {
+                    "title": "Titre (3-7 mots)",
+                    "description": "Description détaillée",
+                    "comment": "Interprétation poétique/philosophique (3-5 phrases)",
+                    "main_genre": "Genre principal",
+                    "secondary_genre": "Sous-genre", 
+                    "keywords": ["mot1", "mot2"]
+                }""",
+                "comment_instruction": "Rédige une interprétation poétique, philosophique, artistique ou petite histoire de mise en ambiance (3-5 phrases)"
+            },
+            "en": {
+                "main": """Analyze this image and return JSON with:
+                {
+                    "title": "Title (3-7 words)",
+                    "description": "Detailed description",
+                    "comment": "Poetic/philosophical interpretation (3-5 sentences)",
+                    "main_genre": "Main genre",
+                    "secondary_genre": "Sub-genre",
+                    "keywords": ["word1", "word2"]
+                }""",
+                "comment_instruction": "Write a poetic, philosophical, artistic interpretation, or a short mood-setting story (3-5 sentences)"
+            }
+        }
+
+
+
 
     @staticmethod
     def _sanitize_filename(title: str) -> str:
@@ -73,38 +107,46 @@ class ImageProcessor:
             return {"error": str(e)}
 
     def _analyze_with_vision(self, image_bytes: bytes) -> Dict:
-        """Appel Vision API"""
         image = vision_v1.Image(content=image_bytes)
+        context = vision_v1.ImageContext(
+            language_hints=["fr" if self.lang == "fr" else "en"]
+        )
+        
         response = self.vision_client.annotate_image({
             "image": image,
+            "image_context": context,
             "features": [
                 {"type_": vision_v1.Feature.Type.LABEL_DETECTION},
-                {"type_": vision_v1.Feature.Type.WEB_DETECTION}
+                {"type_": vision_v1.Feature.Type.WEB_DETECTION},
+                {"type_": vision_v1.Feature.Type.IMAGE_PROPERTIES}
             ]
         })
+        
         return {
             "labels": [label.description for label in response.label_annotations],
-            "web_entities": [entity.description for entity in response.web_detection.web_entities]
+            "web_entities": [entity.description for entity in response.web_detection.web_entities],
+            "colors": [color.color for color in response.image_properties_annotation.dominant_colors.colors]
         }
 
     def _analyze_with_gemini(self, image_bytes: bytes, vision_data: Dict) -> Dict:
-        """Appel Gemini API avec prompt structuré"""
-        prompt = """Analyse cette image et retourne un JSON avec :
-        {
-            "title": "Titre (3-7 mots)",
-            "description": "Description détaillée",
-            "main_genre": "Genre principal",
-            "secondary_genre": "Sous-genre", 
-            "keywords": ["mot1", "mot2"],
-            "comment": "Interprétation poétique, philosophique, artistique ou petite histoire de mise en ambiance (3-5 phrases)"
-        }"""
-        
+        prompt = self.prompts[self.lang]["main"]
         try:
             response = self.gemini_model.generate_content([
                 prompt,
                 {"mime_type": "image/jpeg", "data": image_bytes}
             ])
-            return self._parse_gemini_response(response.text)
+            data = self._parse_gemini_response(response.text)
+            
+            # Si commentaire manquant, générer séparément
+            if not data.get("comment"):
+                comment_prompt = self.prompts[self.lang]["comment_instruction"]
+                response = self.gemini_model.generate_content([
+                    comment_prompt,
+                    {"mime_type": "image/jpeg", "data": image_bytes}
+                ])
+                data["comment"] = response.text
+            
+            return data
         except Exception as e:
             logging.error(f"Erreur Gemini : {str(e)}")
             return {}
@@ -165,7 +207,9 @@ class ImageProcessor:
                         'Xmp.Iptc4xmpCore.Category': metadata.get('main_genre', ''),
                         'Xmp.Iptc4xmpCore.SupplementalCategories': [metadata.get('secondary_genre', '')],
                         'Xmp.iptc.Category': metadata.get('main_genre', ''),
-                        'Xmp.iptc.SupplementalCategories': [metadata.get('secondary_genre', '')]
+                        'Xmp.iptc.SupplementalCategories': [metadata.get('secondary_genre', '')],
+                        'Xmp.exif.UserComment': metadata.get('comment', ''),
+                        'Xmp.iptc.CreatorComment': metadata.get('comment', '')
                     })
 
                     # IPTC pour JPG
@@ -174,10 +218,12 @@ class ImageProcessor:
                             'Iptc.Envelope.CharacterSet': '\x1b%G',  # Spécifie l'encodage UTF-8
                             'Iptc.Application2.ObjectName': metadata.get('title', ''),
                             'Iptc.Application2.Headline': metadata.get('title', ''),
-                            'Iptc.Application2.Caption': metadata.get('description', ''),
+                            # 'Iptc.Application2.Caption': metadata.get('description', ''),
                             'Iptc.Application2.Keywords': metadata.get('keywords', []),
                             'Iptc.Application2.Category': metadata.get('main_genre', ''),
-                            'Iptc.Application2.SuppCategory': metadata.get('secondary_genre', '')
+                            'Iptc.Application2.SuppCategory': metadata.get('secondary_genre', ''),
+                            'Iptc.Application2.SpecialInstructions': metadata.get('comment', ''),
+                            'Iptc.Application2.Caption': f"{metadata.get('description', '')}\n\n{metadata.get('comment', '')}"
                         })
 
             except Exception as pyexiv_error:

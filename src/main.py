@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--credentials", required=True, help="GCP service account JSON")
     parser.add_argument("--output", default="results.json", help="Output file")
     parser.add_argument("--project", help="GCP project ID (détecté automatiquement si non spécifié)")
+    parser.add_argument("--lang", default="fr", choices=["fr", "en"], help="Langue de sortie")
     
     args = parser.parse_args()
 

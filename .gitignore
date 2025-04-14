@@ -12,6 +12,7 @@ exports/
 
 # Pictures
 imgs/
+old/
 
 # Fichiers de compilation
 __pycache__/
