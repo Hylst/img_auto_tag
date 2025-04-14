@@ -95,7 +95,8 @@ class ImageProcessor:
             "description": "Description détaillée",
             "main_genre": "Genre principal",
             "secondary_genre": "Sous-genre", 
-            "keywords": ["mot1", "mot2"]
+            "keywords": ["mot1", "mot2"],
+            "comment": "Interprétation poétique, philosophique, artistique ou petite histoire de mise en ambiance (3-5 phrases)"
         }"""
         
         try:
@@ -160,17 +161,23 @@ class ImageProcessor:
                         'Xmp.photoshop.Headline': metadata.get('title', ''),
                         'Xmp.dc.description': metadata.get('description', ''),
                         'Xmp.dc.subject': metadata.get('keywords', []),
-                        'Xmp.photoshop.Category': metadata.get('main_genre', ''),
-                        'Xmp.photoshop.SupplementalCategories': [metadata.get('secondary_genre', '')]
+                        # Correction des namespaces pour IPTC Core
+                        'Xmp.Iptc4xmpCore.Category': metadata.get('main_genre', ''),
+                        'Xmp.Iptc4xmpCore.SupplementalCategories': [metadata.get('secondary_genre', '')],
+                        'Xmp.iptc.Category': metadata.get('main_genre', ''),
+                        'Xmp.iptc.SupplementalCategories': [metadata.get('secondary_genre', '')]
                     })
 
                     # IPTC pour JPG
                     if path.suffix.lower() in ['.jpg', '.jpeg']:
                         img.modify_iptc({
+                            'Iptc.Envelope.CharacterSet': '\x1b%G',  # Spécifie l'encodage UTF-8
                             'Iptc.Application2.ObjectName': metadata.get('title', ''),
                             'Iptc.Application2.Headline': metadata.get('title', ''),
                             'Iptc.Application2.Caption': metadata.get('description', ''),
-                            'Iptc.Application2.Keywords': metadata.get('keywords', [])
+                            'Iptc.Application2.Keywords': metadata.get('keywords', []),
+                            'Iptc.Application2.Category': metadata.get('main_genre', ''),
+                            'Iptc.Application2.SuppCategory': metadata.get('secondary_genre', '')
                         })
 
             except Exception as pyexiv_error:
