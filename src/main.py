@@ -157,7 +157,14 @@ def main():
         # Initialisation des APIs
         logger.info("🔄 Initialisation des APIs Google...")
         vision_client, gemini_model = initialize_apis(args.credentials, args.project)
-        
+        input_path = Path(args.input_path)  # Définir input_path ici    
+        # Ajuster le nombre de workers au nombre de fichiers
+        if input_path.is_dir():
+            image_count = len([f for f in input_path.glob('**/*') if f.suffix.lower() in ('.jpg', '.jpeg', '.png')])
+            args.workers = min(args.workers, image_count)
+            if args.verbose >= 1:
+                logger.info(f"🧵 Nombre de workers ajusté: [bold]{args.workers}[/bold]")
+
         # Création du processeur d'images
         processor = ImageProcessor(
             vision_client, 

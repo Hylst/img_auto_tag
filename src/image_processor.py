@@ -160,11 +160,12 @@ class ImageProcessor:
         start_time = time.time()
         path = pathlib.Path(directory_path)
         
-        # Collecte des fichiers images
+        # Collecte des fichiers images (APRÈS)
         image_files = []
-        for ext in ['.jpg', '.jpeg', '.png']:
-            image_files.extend(list(path.glob(f'*{ext}')))
-            image_files.extend(list(path.glob(f'*{ext.upper()}')))
+        extensions = {'.jpg', '.jpeg', '.png'}
+        for file_path in path.glob('*.*'):
+            if file_path.suffix.lower() in extensions:
+                image_files.append(file_path)
         
         self.stats.total_images = len(image_files)
         logger.info(f"📂 Dossier : {directory_path}")
@@ -507,8 +508,13 @@ class ImageProcessor:
             return {}
 
     def _rename_file(self, original_path: pathlib.Path, title: str) -> pathlib.Path:
-        """Renomme le fichier de manière sécurisée avec plus d'informations"""
+        """Renomme le fichier de manière sécurisée avec vérification préalable"""
         try:
+            # Vérifier si le fichier existe encore
+            if not original_path.exists():
+                logger.warning(f"⚠️ Fichier introuvable pour renommage: {original_path}")
+                return original_path
+                
             sanitized = self._sanitize_filename(title)
             if not sanitized:
                 sanitized = f"image_{int(time.time())}"
@@ -529,25 +535,26 @@ class ImageProcessor:
                     logger.info(f"🔄 Nom de fichier inchangé: {original_path.name}")
                 return original_path
                 
-            # Créer une copie de sauvegarde temporaire
-            temp_backup = None
-            if self.verbose >= 3:
+            # Créer une copie de sauvegarde si demandé
+            if hasattr(self, 'create_backups') and self.create_backups:
                 temp_backup = original_path.with_name(f".bak_{original_path.name}")
                 shutil.copy2(original_path, temp_backup)
-                logger.debug(f"💾 Copie de sauvegarde créée: {temp_backup.name}")
+                if self.verbose >= 2:
+                    logger.debug(f"💾 Copie de sauvegarde créée: {temp_backup.name}")
                 
-            # Renommer le fichier
-            original_path.rename(new_path)
-            
-            if self.verbose >= 2:
-                logger.info(f"📝 Fichier renommé: {original_path.name} → {new_path.name}")
+            # Renommer le fichier avec vérification supplémentaire
+            try:
+                original_path.rename(new_path)
+                if self.verbose >= 2:
+                    logger.info(f"📝 Fichier renommé: {original_path.name} → {new_path.name}")
+                return new_path
+            except FileNotFoundError:
+                logger.warning(f"⚠️ Le fichier a peut-être déjà été renommé: {original_path}")
+                # Vérifier si la destination existe déjà
+                if new_path.exists():
+                    return new_path
+                return original_path
                 
-            # Supprimer la sauvegarde si tout s'est bien passé
-            if temp_backup and temp_backup.exists():
-                temp_backup.unlink()
-                
-            return new_path
-            
         except Exception as e:
             logger.error(f"❌ Échec renommage : {str(e)}")
             return original_path
