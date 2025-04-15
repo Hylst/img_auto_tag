@@ -1,127 +1,179 @@
-# Image Auto Tagger - Outil d'analyse et de tagging d'images par IA
+```markdown
+# Image Metadata Auto-Tagger 🖼️🤖
 
-![Exemple de métadonnées](https://i.imgur.com/9XW1kTj.png)
+Outil Python pour l'analyse d'images et la génération automatique de métadonnées enrichies (IPTC/XMP) utilisant Google Vision API et Gemini AI.
 
-Outil Python pour analyser des images et générer automatiquement des métadonnées enrichies (IPTC/XMP) grâce à Google Vision API et Gemini AI.
+![Workflow](https://img.shields.io/badge/Workflow-AI%20Powered-blueviolet)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Licence](https://img.shields.io/badge/Licence-MIT-green)
 
 ## ✨ Fonctionnalités
 
-- 🖼️ **Analyse par lots** (JPG/PNG)
-- 📝 **Génération automatique** de titres, descriptions et mots-clés
-- 🏷️ **Écriture des métadonnées** dans les champs IPTC/XMP standards
-- 🔄 **Renommage automatique** des fichiers basé sur le titre généré
-- 📊 **Export JSON** détaillé avec statistiques de traitement
+- **Analyse par lots** de répertoires d'images (JPG/PNG)
+- **Génération intelligente** via IA :
+  - 📌 Titres optimisés SEO
+  - 📝 Descriptions contextuelles
+  - 🎨 Interprétations artistiques
+  - 🔑 Mots-clés thématiques
+- **Écriture des métadonnées** :
+  - ✅ Normes IPTC/XMP
+  - 🌍 Support multilingue
+  - 🖼️ Compatibilité Adobe/Lightroom
+- **Automatisations** :
+  - 🔄 Renommage intelligent des fichiers
+  - 📊 Statistiques de traitement
+  - 💾 Export JSON structuré
 
-## 📋 Correspondance des Métadonnées
+## 🚀 Installation
 
-| Donnée               | Champ IPTC                 | Champ XMP                          | Exemple                      |
-|----------------------|----------------------------|------------------------------------|-----------------------------|
-| **Titre**            | `Object Name` (2:05)       | `Xmp.dc.title`                    | "Château médiéval"          |
-| **Description**      | `Caption/Abstract` (2:120) | `Xmp.dc.description`              | "Vue panoramique..."        |
-| **Genre principal**  | `Category` (2:15)          | `Xmp.photoshop.Category`          | "Photographie"              |
-| **Sous-genre**       | `Supplemental Category` (2:20) | `Xmp.photoshop.SupplementalCategories` | "Architecture"    |
-| **Mots-clés**        | `Keywords` (2:25)          | `Xmp.dc.subject`                  | ["patrimoine", "histoire"]  |
-
-## 🛠️ Installation
-
-### Prérequis
+**Prérequis** :
 - Python 3.10+
-- [Librearies Exiv2](https://exiv2.org/download.html) (Linux : `sudo apt-get install libexiv2-dev`)
+- Compte Google Cloud avec :
+  - Vision API activé
+  - Generative Language API activé
 
 ```bash
-git clone https://github.com/Hylst/Image-Tagger.git
-cd Image-Tagger
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-.\.venv\Scripts\activate   # Windows
-
+git clone https://github.com/votre-repo/img-auto-tagger.git
+cd img-auto-tagger
 pip install -r requirements.txt
+```
 
-🔧 Configuration Google Cloud
+## ⚙️ Configuration
 
-Activer ces APIs dans Google Cloud Console :
+1. **Credentials Google Cloud** :
+   - Créez un compte de service dans [Google Cloud Console](https://console.cloud.google.com/)
+   - Téléchargez le fichier JSON des identifiants
+   - Placez-le dans `config/service-account.json`
 
-        Vision API
+2. **Variables d'environnement** (optionnel) :
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="config/service-account.json"
+```
 
-        Vertex AI API
+## 🖥️ Utilisation
 
-        Generative Language API
+**Commande de base** :
+```bash
+python -m src.main <input_path> --credentials <credentials_path> [options]
+```
 
-    Générer une clé de service avec les rôles :
+**Options complètes** :
+| Option         | Description                                | Valeur par défaut |
+|----------------|--------------------------------------------|-------------------|
+| `--output`     | Fichier de sortie JSON                     | results.json      |
+| `--lang`       | Langue de sortie (fr/en)                   | fr                |
+| `--project`    | ID projet GCP (auto-détecté si omis)       | Auto              |
 
-        Vision AI Administrator
+**Exemples** :
+```bash
+# Traitement d'un répertoire
+python -m src.main ./photos --credentials config/service-account.json --lang en --output analysis.json
 
-        Vertex AI User
+# Traitement d'une image unique
+python -m src.main image.jpg --credentials config/key.json
+```
 
-    Placer le fichier JSON dans :
-    Copy
+## 📂 Structure des sorties
 
-    config/
-    └── service-account.json
-
-🚀 Utilisation
-Commande de base
-bash
-Copy
-
-python -m src.main ./imgs --credentials config/service-account.json --output results.json
-
-Sortie JSON
-json
-Copy
-
+**Fichier JSON** :
+```json
 {
-  "original_file": "IMG_1234.jpg",
-  "new_file": "Château_Médiéval_Fantasy.jpg",
-  "title": "Château médiéval au crépuscule",
+  "original_file": "photo.jpg",
+  "new_file": "Paysage_estival.jpg",
+  "path": "/output/Paysage_estival.jpg",
+  "title": "Paysage estival",
+  "description": "Vaste panorama montrant...",
+  "comment": "Cette œuvre évoque...",
+  "main_genre": "Photographie",
+  "secondary_genre": "Nature",
+  "keywords": ["été", "montagne", "ciel"],
   "metadata_written": true,
-  "main_genre": "Fantasy",
-  "processing_time": 4.21
+  "processing_time": 4.12
 }
+```
 
-🔍 Vérification des Métadonnées
+**Métadonnées images** :
+| Champ               | XMP                     | IPTC                  |
+|---------------------|-------------------------|-----------------------|
+| Titre               | dc:title                | ObjectName            |
+| Description         | dc:description          | Caption               |
+| Commentaire         | exif:UserComment        | SpecialInstructions   |
+| Mots-clés           | dc:subject              | Keywords              |
+| Catégorie principale| Iptc4xmpCore:Category   | Category              |
+| Sous-catégorie      | Iptc4xmpCore:SupplementalCategories | SuppCategory |
 
-Installez ExifTool puis :
-bash
-Copy
+## 🖼️ Formats supportés
 
-exiftool -G1 -IPTC:All -XMP:All image.jpg
+| Format | Métadonnées         | Renommage | Remarques               |
+|--------|---------------------|-----------|-------------------------|
+| JPG    | IPTC + XMP          | ✓         | Support complet         |
+| PNG    | XMP                 | ✓         | Pas de IPTC natif       |
+| HEIC   | ❌                  | ❌        | Non supporté actuellement |
 
-# Exemple de sortie
-[IPTC]   Object Name                  : Château médiéval au crépuscule
-[XMP]    DC Description               : Une forteresse imposante...
-[XMP]    Photoshop Category           : Fantasy
+## 🧠 Architecture technique
 
-⚠️ Limitations connues
+```mermaid
+graph TD
+    A[Input Images] --> B[Vision API]
+    B --> C{Analyse technique}
+    C --> D[Labels]
+    C --> E[Couleurs]
+    C --> F[Entités web]
+    D --> G[Gemini AI]
+    E --> G
+    F --> G
+    G --> H{Génération IA}
+    H --> I[Titre]
+    H --> J[Description]
+    H --> K[Commentaire]
+    H --> L[Mots-clés]
+    I --> M[Renommage fichier]
+    J --> N[Écriture XMP]
+    K --> N
+    L --> N
+    N --> O[Sortie JSON]
+```
 
-    PNG : Les métadonnées IPTC ne sont pas supportées (utilisation de XMP)
+## 🔧 Dépannage
 
-    Caractères spéciaux : Remplacés par _ dans les noms de fichiers
+**Problèmes courants** :
+1. **Erreurs d'encodage** :
+   ```bash
+   export PYTHONUTF8=1
+   ```
+2. **Permissions API** :
+   - Vérifier que les APIs sont activées
+   - Vérifier les quotas Google Cloud
 
-    Performances : ~3-5 secondes/image (dépend des APIs Google)
+3. **Métadonnées non sauvegardées** :
+   ```bash
+   exiftool -xmp:all -iptc:all image.jpg
+   ```
 
-📊 Statistiques API
-Service	Coût/1000 images	Quota par défaut
-Vision API	$1.50	600 req/min
-Gemini 1.5	$0.80	1800 req/min
-📜 Licence
+4. **Erreurs Gemini** :
+   - Activer le logging détaillé :
+   ```python
+   logging.basicConfig(level=logging.DEBUG)
+   ```
 
-MIT License - Voir LICENSE
+## 🤝 Contribution
 
-Développé par [Votre Nom] - Documentation technique | Code of Conduct
-Copy
+1. Fork du projet
+2. Créez une branche (`git checkout -b feature/amelioration`)
+3. Commitez vos changements
+4. Poussez la branche (`git push origin feature/amelioration`)
+5. Ouvrez une Pull Request
 
+## 📜 Licence
 
-Ce README inclut désormais :
-- Une table de correspondance IPTC/XMP complète
-- Des instructions spécifiques pour la gestion des métadonnées
-- Des exemples de commandes de vérification
-- Des informations de coût actualisées
-- Des captures d'écran visuelles
+MIT License - Voir le fichier [LICENSE](LICENSE) pour détails
 
-Pour une adoption professionnelle, ajoutez :
-- Un guide de contribution
-- Un fichier CHANGELOG.md
-- Des badges de statut CI/CD
+---
 
-python -m src.main imgs/ --credentials config/service-account.json --output resultatsfren.json
+**Optimisé pour** :  
+![Adobe Lightroom](https://img.shields.io/badge/Adobe%20Lightroom-31A8FF?style=flat&logo=Adobe%20Lightroom&logoColor=white)
+![Photoshop](https://img.shields.io/badge/Adobe%20Photoshop-31A8FF?style=flat&logo=Adobe%20Photoshop&logoColor=white)
+![Google Drive](https://img.shields.io/badge/Google%20Drive-4285F4?style=flat&logo=googledrive&logoColor=white)
+```
+
+Ce README inclut tous les éléments essentiels pour une utilisation professionnelle du projet, avec des badges dynamiques, une documentation technique détaillée et des guides de dépannage. Adaptez les liens et les sections spécifiques selon votre implémentation réelle.
