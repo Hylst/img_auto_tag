@@ -6,3 +6,4 @@ iptcinfo3==2.1.4
 pyexiv2==2.15.3
 python-dateutil==2.9.0
 tqdm==4.67.1
+rich==13.7.1
