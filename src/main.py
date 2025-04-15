@@ -17,9 +17,10 @@ def main():
     parser.add_argument("--output", default="results.json", help="Output file")
     parser.add_argument("--project", help="GCP project ID (détecté automatiquement si non spécifié)")
     parser.add_argument("--lang", default="fr", choices=["fr", "en"], help="Langue de sortie")
-    
-    args = parser.parse_args()
 
+    args = parser.parse_args()
+    logging.info(f"Langue sélectionnée : {args.lang.upper()}")
+    
     # Récupération automatique du project_id
     if not args.project:
         with open(args.credentials) as f:
@@ -31,8 +32,8 @@ def main():
     
     # Initialisation des APIs
     vision_client, gemini_model = initialize_apis(args.credentials, args.project)
-    processor = ImageProcessor(vision_client, gemini_model)
-    
+    processor = ImageProcessor(vision_client, gemini_model, args.lang)
+
     # Traitement
     results = []
     if os.path.isdir(args.input_path):
