@@ -155,15 +155,24 @@ class ImageProcessor:
             with open(image_path, "rb") as f:
                 return f.read(), (0, 0)  # Dimensions inconnues
 
-    def process_directory(self, directory_path: str, output_file: str) -> Dict:
+    def process_directory(self, directory_path: str, output_file: str, recursive=False) -> Dict:
         """Traite un répertoire d'images avec barre de progression"""
         start_time = time.time()
         path = pathlib.Path(directory_path)
         
-        # Collecte des fichiers images (APRÈS)
+        # Collecte des fichiers images avec support récursif
         image_files = []
         extensions = {'.jpg', '.jpeg', '.png'}
-        for file_path in path.glob('*.*'):
+        
+        # Fonction pour parcourir le répertoire
+        if recursive:
+            pattern = '**/*.*'  # Récursif
+            if self.verbose >= 2:
+                logger.info(f"🔍 Recherche récursive d'images dans les sous-répertoires")
+        else:
+            pattern = '*.*'  # Non récursif (fichiers à la racine seulement)
+        
+        for file_path in path.glob(pattern):
             if file_path.suffix.lower() in extensions:
                 image_files.append(file_path)
         

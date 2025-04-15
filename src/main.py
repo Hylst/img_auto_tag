@@ -36,9 +36,14 @@ def validate_inputs(args):
     # Information sur le chemin d'entrée
     input_path = Path(args.input_path)
     if input_path.is_dir():
-        image_count = len([f for f in input_path.glob('**/*') if f.suffix.lower() in ('.jpg', '.jpeg', '.png')])
-        logger.info(f"📂 Dossier: [bold]{input_path}[/bold]")
-        logger.info(f"🖼️ Images trouvées: [bold]{image_count}[/bold]")
+        if args.recursive:
+            logger.info(f"📂 Dossier (mode récursif): [bold]{input_path}[/bold]")
+            if args.verbose >= 2:
+                logger.info("ℹ️ Le décompte des images sera effectué pendant le traitement")
+        else:
+            image_count = len([f for f in input_path.glob('*.*') if f.suffix.lower() in ('.jpg', '.jpeg', '.png')])
+            logger.info(f"📂 Dossier: [bold]{input_path}[/bold]")
+            logger.info(f"🖼️ Images trouvées: [bold]{image_count}[/bold]")
     else:
         logger.info(f"🖼️ Image à traiter: [bold]{input_path.name}[/bold]")
     
@@ -143,11 +148,23 @@ def main():
     parser.add_argument("--no-rename", action="store_true", help="Ne pas renommer les fichiers")
     parser.add_argument("--retry", type=int, default=3, help="Nombre de tentatives pour les appels API")
     parser.add_argument("--backup", action="store_true", help="Créer des sauvegardes des fichiers originaux")
+    parser.add_argument("--recursive", "-r", action="store_true", help="Rechercher récursivement les images dans les sous-répertoires")
 
     args = parser.parse_args()
     
     # Configuration de la journalisation en fonction de la verbosité
     setup_logging(args.verbose)
+    
+    # S'assurer que le répertoire d'exports existe
+    output_path = Path(args.output)
+    output_dir = output_path.parent
+    if not output_dir.exists():
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"📁 Création du répertoire de sortie: {output_dir}")
+        except Exception as e:
+            logger.error(f"❌ Impossible de créer le répertoire de sortie: {str(e)}")
+            sys.exit(1)
     
     # Validation des entrées
     if not validate_inputs(args):
@@ -160,10 +177,14 @@ def main():
         input_path = Path(args.input_path)  # Définir input_path ici    
         # Ajuster le nombre de workers au nombre de fichiers
         if input_path.is_dir():
-            image_count = len([f for f in input_path.glob('**/*') if f.suffix.lower() in ('.jpg', '.jpeg', '.png')])
-            args.workers = min(args.workers, image_count)
-            if args.verbose >= 1:
-                logger.info(f"🧵 Nombre de workers ajusté: [bold]{args.workers}[/bold]")
+            # On ne compte pas les fichiers à l'avance pour la récursivité pour des raisons de performance
+            if args.recursive:
+                logger.info(f"🧵 Mode récursif activé avec {args.workers} workers")
+            else:
+                image_count = len([f for f in input_path.glob('*.*') if f.suffix.lower() in ('.jpg', '.jpeg', '.png')])
+                args.workers = min(args.workers, max(1, image_count))
+                if args.verbose >= 1:
+                    logger.info(f"🧵 Nombre de workers ajusté: [bold]{args.workers}[/bold]")
 
         # Création du processeur d'images
         processor = ImageProcessor(
@@ -186,11 +207,15 @@ def main():
         if input_path.is_dir():
             # Traitement d'un répertoire
             logger.info("🔄 Début du traitement par lots...")
-            directory_results = processor.process_directory(str(input_path), args.output)
+            directory_results = processor.process_directory(str(input_path), args.output, recursive=args.recursive)
             
             # Les résultats détaillés sont déjà sauvegardés dans le fichier de sortie
-            with open(args.output, "r", encoding="utf-8") as f:
-                results = json.load(f)
+            if os.path.exists(args.output):
+                with open(args.output, "r", encoding="utf-8") as f:
+                    results = json.load(f)
+            else:
+                logger.warning("⚠️ Fichier de résultats non trouvé, affichage du résumé limité")
+                results = []
         else:
             # Traitement d'une seule image
             logger.info("🔄 Traitement d'une image unique...")
