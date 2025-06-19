@@ -2,6 +2,7 @@
 
 Tous les changements notables de ce projet seront documentés dans ce fichier.
 
+<<<<<<< HEAD
 ## [2025-01-19] - Enhanced Error Handling & User Experience
 
 ### ✅ Completed
@@ -26,6 +27,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - **Maintained multilingual support**: French/English language options continue to work seamlessly
 - **Verified compatibility**: Successfully tested application startup and help display with new model names
 
+=======
+>>>>>>> d5546a6b808d30dbbfb4be0013fba45976b6d63f
 ## [1.1.0] - 2025-01-19
 
 ### 🔧 Corrections importantes
@@ -240,6 +243,7 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 ## [Unreleased]
 
 ### Added
+<<<<<<< HEAD
 - Interactive Gemini model selection at startup with rich table display
 - Support for multiple Gemini models: `gemini-2.5-flash`, `gemini-2.5-pro`, and `gemini-1.5-pro-latest`
 - Improved filename slugification with proper Unicode normalization and ASCII conversion
@@ -249,6 +253,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - Support for the 'story' field in image metadata
 - Enhanced JSON output structure with narrative storytelling
 - XMP metadata writing for the story field using Xmp.photoshop.Instructions
+=======
+>>>>>>> d5546a6b808d30dbbfb4be0013fba45976b6d63f
 - Option to choose between Google Cloud Vision API and Gemini API for image analysis via `--api` command-line argument.
   - `src/main.py`: Added `--api` argument to `argparse`.
   - `src/image_processor.py`: 
@@ -258,6 +264,7 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
     - Included `api_used` in the output JSON.
 
 ### Changed
+<<<<<<< HEAD
 - Updated prompts to include 'story' field for more lyrical and artistic descriptions
 - Modified `initialize_apis` function to accept custom Gemini model selection
 - Enhanced `_sanitize_filename` function with comprehensive slug formatting
@@ -266,10 +273,13 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - Enhanced code documentation with humorous but informative comments
 - Updated prompts to include lyrical story generation (4-6 narrative sentences)
 - Enhanced documentation with story field examples
+=======
+>>>>>>> d5546a6b808d30dbbfb4be0013fba45976b6d63f
 - Updated SDK usage for `google-genai` in `src/config.py` and `src/image_processor.py`.
 - Updated `requirements.txt` to use `google-genai` instead of `google-generativeai`.
 
 ### Fixed
+<<<<<<< HEAD
 - **Critical**: Resolved 404 errors for `gemini-2.5-flash-preview` and `gemini-2.5-pro-preview` by updating to GA model names
 - Updated model selection to use `gemini-2.5-flash` and `gemini-2.5-pro` (GA versions)
 - Improved error handling and user feedback for model availability
@@ -302,6 +312,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - Consider adding model performance comparison metrics
 
 ### Fixed
+=======
+>>>>>>> d5546a6b808d30dbbfb4be0013fba45976b6d63f
 - Corrected `google-genai` SDK usage in `src/image_processor.py` (`generate_content` instead of `generate_text`).
 - Resolved `AttributeError: 'ImageProcessor' object has no attribute 'api_choice'` by ensuring `api_choice` is passed and set.
 - Fixed import error for `genai` in `src/image_processor.py` by importing it directly.
@@ -314,11 +326,14 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - Fixed `ImportError: cannot import name 'check_credentials'` by removing the import of `check_credentials` from `src/main.py`.
 - Fixed `NameError: name 'genai_client' is not defined` by using `gemini_model` instead of `genai_client` in `ImageProcessor` initialization in `src/main.py`.
 
+<<<<<<< HEAD
 ### To Do
 - Test interactive model selection with all three Gemini models
 - Validate slugified filenames across different operating systems
 - Add model performance comparison documentation
 
+=======
+>>>>>>> d5546a6b808d30dbbfb4be0013fba45976b6d63f
 ## [Latest] - 2024-12-19
 
 ### Added

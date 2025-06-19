@@ -15,7 +15,10 @@ Un outil Python puissant pour l'analyse automatique d'images et la génération 
 - [Installation](#-installation)
 - [Configuration](#-configuration)
 - [Guide des identifiants Google Cloud](#-guide-des-identifiants-google-cloud)
+<<<<<<< HEAD
 - [Métadonnées IPTC/XMP](#-métadonnées-iptcxmp)
+=======
+>>>>>>> d5546a6b808d30dbbfb4be0013fba45976b6d63f
 - [Utilisation](#-utilisation)
 - [Structure du projet](#-structure-du-projet)
 - [Exemples de sortie](#-exemples-de-sortie)
@@ -283,6 +286,7 @@ Pour obtenir des identifiants Google Cloud et résoudre les problèmes de config
 Ce guide couvre :
 - ✅ Création d'un projet Google Cloud
 - ✅ Activation des APIs nécessaires
+<<<<<<< HEAD
 
 ## 📋 Métadonnées IPTC/XMP
 
@@ -324,6 +328,8 @@ Ce guide technique couvre :
 - ✅ Traitement spécial par format (JPG/PNG)
 - ✅ Proposition détaillée du champ "story"
 - ✅ Références techniques et exemples
+=======
+>>>>>>> d5546a6b808d30dbbfb4be0013fba45976b6d63f
 - ✅ Création d'un compte de service
 - ✅ Téléchargement des identifiants JSON
 - ✅ Résolution des erreurs courantes
