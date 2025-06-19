@@ -23,53 +23,63 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 import os
 
-# Configuration du logger enrichi
+# Configuration du logger enrichi - because plain text logs are so last century! 📜
 console = Console()
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
-    handlers=[RichHandler(rich_tracebacks=True, console=console)]
+    handlers=[RichHandler(rich_tracebacks=True, console=console)]  # Rich logs = happy developers 😊
 )
-logger = logging.getLogger("image_processor")
+logger = logging.getLogger("image_processor")  # Our trusty sidekick for debugging adventures 🕵️‍♂️
 
 class ProcessingStats:
-    """Classe pour suivre les statistiques de traitement"""
+    """
+    Classe pour suivre les statistiques de traitement - like a fitness tracker, 
+    but for AI image processing! 📊
+    
+    Keeps track of wins, losses, and how long we've been staring at progress bars.
+    """
     def __init__(self):
-        self.total_images = 0
-        self.processed = 0
-        self.successful = 0
-        self.failed = 0
-        self.start_time = time.time()
-        self.processing_times = []
+        self.total_images = 0      # The mountain we need to climb 🏔️
+        self.processed = 0         # How far we've come 🚶‍♂️
+        self.successful = 0        # Victory count! 🏆
+        self.failed = 0           # The ones that got away 🐟
+        self.start_time = time.time()  # When this epic journey began ⏰
+        self.processing_times = []     # Speed records for the hall of fame 🏃‍♂️
         
     def add_result(self, success: bool, processing_time: float):
+        """Add a result to our collection - like Pokemon cards, but for image processing! 🎴"""
         self.processed += 1
         if success:
-            self.successful += 1
+            self.successful += 1  # Another one bites the dust! 🎵
         else:
-            self.failed += 1
+            self.failed += 1      # F in the chat 😔
         self.processing_times.append(processing_time)
     
     def average_time(self) -> float:
+        """Calculate average processing time - because we love our metrics! 📈"""
         if not self.processing_times:
-            return 0
+            return 0  # No data yet, we're still warming up! 🔥
         return sum(self.processing_times) / len(self.processing_times)
     
     def elapsed_time(self) -> float:
+        """How long have we been at this? Time flies when you're having fun! ⏰"""
         return time.time() - self.start_time
     
     def estimated_remaining(self) -> float:
+        """Crystal ball prediction of remaining time - accuracy not guaranteed! 🔮"""
         if self.processed == 0 or self.total_images == 0:
-            return 0
+            return 0  # Can't predict the future without data! 🤷‍♂️
         avg_time = self.average_time()
         return avg_time * (self.total_images - self.processed)
     
     def display_summary(self):
-        """Affiche un résumé des statistiques"""
+        """Show off our achievements - like a report card, but prettier! 📊"""
         table = Table(title="Résumé du traitement")
         table.add_column("Métrique", style="cyan")
         table.add_column("Valeur", style="green")
         
+        # The good, the bad, and the processed 🎬
         table.add_row("Images traitées", f"{self.processed}/{self.total_images}")
         table.add_row("Réussites", f"{self.successful} ({self.successful/max(1, self.processed)*100:.1f}%)")
         table.add_row("Échecs", f"{self.failed} ({self.failed/max(1, self.processed)*100:.1f}%)")
@@ -80,16 +90,23 @@ class ProcessingStats:
 
 
 class ImageProcessor:
+    """
+    The main event! This class turns boring images into poetic masterpieces. 🎨
+    
+    It's like having a digital art critic that never gets tired, never needs coffee,
+    and always has something interesting to say about your photos! ☕
+    """
     def __init__(self, vision_client, gemini_model, lang="fr", verbose=1, max_workers=4):
-        self.vision_client = vision_client
-        self.gemini_model = gemini_model
-        self.lang = lang.lower().strip()
-        self.verbose = verbose
-        self.max_workers = max_workers
-        self.stats = ProcessingStats()
-        self._init_prompts()
-        self.retry_count = 3
-        self.retry_delay = 2  # secondes
+        """Initialize our image processing wizard - assembly required! 🧙‍♂️"""
+        self.vision_client = vision_client    # The eyes of the operation 👁️
+        self.gemini_model = gemini_model      # The brain of the operation 🧠
+        self.lang = lang.lower().strip()     # Parlez-vous français? 🇫🇷
+        self.verbose = verbose                # How chatty should we be? 🗣️
+        self.max_workers = max_workers        # Our digital workforce 👷‍♂️
+        self.stats = ProcessingStats()       # Our personal scorekeeper 📊
+        self._init_prompts()                  # Loading our conversation starters 💬
+        self.retry_count = 3                 # Because third time's the charm! 🍀
+        self.retry_delay = 2                 # Patience, young grasshopper ⏳
         
         logger.info(f"🌍 Mode langue : [bold]{self.lang.upper()}[/bold]")
         logger.info(f"🧵 Traitement parallèle : [bold]{self.max_workers}[/bold] workers")
@@ -102,6 +119,7 @@ class ImageProcessor:
                     "title": "Titre (3-7 mots)",
                     "description": "Description détaillée",
                     "comment": "Interprétation poétique/philosophique (3-5 phrases)",
+                    "story": "Histoire lyrique et artistique qui fait rêver (4-6 phrases narratives)",
                     "main_genre": "Genre principal",
                     "secondary_genre": "Sous-genre", 
                     "keywords": ["mot1", "mot2"]
@@ -114,6 +132,7 @@ class ImageProcessor:
                     "title": "Title (3-7 words)",
                     "description": "Detailed description",
                     "comment": "Poetic interpretation (3-5 sentences)",
+                    "story": "Lyrical and artistic story that inspires dreams (4-6 narrative sentences)",
                     "main_genre": "Main genre",
                     "secondary_genre": "Sub-genre",
                     "keywords": ["word1", "word2"]
@@ -123,19 +142,51 @@ class ImageProcessor:
         }
         
     def _sanitize_filename(self, title: str) -> str:
+        """
+        Transform chaotic titles into well-behaved filenames! 🧹
+        
+        Like a digital Marie Kondo, this function sparks joy by turning
+        "Château de Versailles - Vue d'ensemble!!!" into "Chateau-De-Versailles-Vue-D-Ensemble"
+        Because filesystems deserve respect too! 💾
+        """
+        import re
+        
+        # Normalize unicode characters - making peace with accents 🕊️
         normalized = unicodedata.normalize('NFKD', title)
-        cleaned = normalized.encode('ASCII', 'ignore').decode('ASCII')
-        sanitized = ''.join(c if c.isalnum() or c in ' -_' else '_' for c in cleaned.strip())
-        return sanitized[:50]
+        
+        # Convert to ASCII, removing accents - sorry François! 🇫🇷➡️🇺🇸
+        ascii_str = normalized.encode('ASCII', 'ignore').decode('ASCII')
+        
+        # Convert to lowercase for proper slug format - no shouting allowed! 🤫
+        ascii_str = ascii_str.lower()
+        
+        # Replace spaces and special characters with hyphens - the great unifier! ➖
+        slug = re.sub(r'[^a-z0-9]+', '-', ascii_str)
+        
+        # Remove leading/trailing hyphens and multiple consecutive hyphens - no stuttering! 🚫
+        slug = re.sub(r'^-+|-+$', '', slug)
+        slug = re.sub(r'-+', '-', slug)
+        
+        # Capitalize first letter of each word for better readability - proper etiquette! 🎩
+        slug = '-'.join(word.capitalize() for word in slug.split('-') if word)
+        
+        # Limit length to 50 characters - because brevity is the soul of wit! ✂️
+        return slug[:50].rstrip('-')
 
     def resize_image(self, image_path: str) -> Tuple[bytes, Tuple[int, int]]:
-        """Redimensionne l'image et retourne les octets + dimensions originales"""
+        """
+        Resize images like a digital tailor - one size fits all APIs! 👔
+        
+        Takes your massive 4K photos and gently convinces them to play nice
+        with our AI friends who prefer their images bite-sized. 🍰
+        """
         try:
             with Image.open(image_path) as img:
                 original_size = img.size
                 if self.verbose >= 2:
                     logger.info(f"📐 Dimensions originales : {original_size[0]}x{original_size[1]}")
                 
+                # Some images are special snowflakes with fancy color modes ❄️
                 if img.mode in ['P', 'RGBA']:
                     if self.verbose >= 2:
                         logger.info(f"🎨 Conversion du mode {img.mode} vers RGB")
@@ -465,6 +516,7 @@ class ImageProcessor:
                         "title": "Image sans titre",
                         "description": "Pas de description disponible",
                         "comment": "",
+                        "story": "",
                         "main_genre": "Non classé",
                         "secondary_genre": "",
                         "keywords": ["image"],
@@ -609,7 +661,8 @@ class ImageProcessor:
                         'Xmp.dc.description': full_description,
                         'Xmp.dc.subject': keywords,
                         'Xmp.Iptc4xmpCore.Category': metadata.get('main_genre', ''),
-                        'Xmp.Iptc4xmpCore.SupplementalCategories': [metadata.get('secondary_genre', '')]
+                        'Xmp.Iptc4xmpCore.SupplementalCategories': [metadata.get('secondary_genre', '')],
+                        'Xmp.photoshop.Instructions': metadata.get('story', '')
                     }
                     
                     if self.verbose >= 3:

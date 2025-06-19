@@ -14,10 +14,13 @@ Un outil Python puissant pour l'analyse automatique d'images et la génération 
 - [Prérequis](#-prérequis)
 - [Installation](#-installation)
 - [Configuration](#-configuration)
+- [Guide des identifiants Google Cloud](#-guide-des-identifiants-google-cloud)
+- [Métadonnées IPTC/XMP](#-métadonnées-iptcxmp)
 - [Utilisation](#-utilisation)
 - [Structure du projet](#-structure-du-projet)
 - [Exemples de sortie](#-exemples-de-sortie)
 - [Résolution des problèmes courants](#-résolution-des-problèmes-courants)
+- [Changelog](#-changelog)
 - [Contribution](#-contribution)
 - [Licence](#-licence)
 
@@ -42,6 +45,8 @@ Ces métadonnées sont ensuite intégrées directement dans les fichiers d'image
   - ✅ Normes IPTC/XMP compatibles avec les logiciels professionnels  
   - 🌍 Support multilingue (français et anglais)  
   - 🖼️ Compatibilité Adobe/Lightroom et autres outils de gestion d'images
+  - 📋 Mapping détaillé des champs JSON vers IPTC/XMP
+  - 🎭 Support proposé pour un champ "story" (narration artistique)
 
 - **Automatisations** :
   - 🔄 Renommage intelligent des fichiers basé sur le titre généré  
@@ -209,6 +214,7 @@ Traitement de 2 images... ━━━━━━━━━━━━━━━━━━
     "title": "Happy White Wolf Pup",
     "description": "Une illustration stylisée d'un louveteau blanc...",
     "comment": "Cette image évoque l'innocence et la joie...",
+    "story": "Dans une forêt enchantée où les rêves prennent vie, ce petit loup blanc découvre le monde avec émerveillement. Ses yeux pétillants racontent mille aventures à venir, tandis que son sourire innocent illumine le cœur de tous ceux qui le regardent...",
     "main_genre": "Illustration",
     "secondary_genre": "Animation",
     "keywords": ["wolf", "pup", "cute", "cartoon", "coloring book"],
@@ -223,6 +229,7 @@ Traitement de 2 images... ━━━━━━━━━━━━━━━━━━
     "title": "Hindu Temple Light Show",
     "description": "Une photographie nocturne impressionnante...",
     "comment": "Les lumières dansantes symbolisent la communion...",
+    "story": "Quand la nuit tombe sur le temple sacré, les dieux eux-mêmes semblent descendre pour danser dans la lumière. Chaque rayon coloré raconte une légende millénaire, tissant un pont lumineux entre le terrestre et le divin. Les fidèles contemplent, émerveillés, cette symphonie visuelle qui transforme la pierre en poésie...",
     "main_genre": "Photography",
     "secondary_genre": "Night",
     "keywords": ["Hindu Temple", "Light Show", "Night Photography", "Festival", "India"],
@@ -266,6 +273,94 @@ Si vous rencontrez des erreurs liées aux APIs Google:
 - Assurez-vous que votre compte de service a les permissions nécessaires
 - Vérifiez votre connexion internet
 - Augmentez le nombre de tentatives avec --retry 5
+
+## 🔑 Guide des identifiants Google Cloud
+
+Pour obtenir des identifiants Google Cloud et résoudre les problèmes de configuration, consultez le guide détaillé :
+
+📖 **[GOOGLE_CREDENTIALS_GUIDE.md](GOOGLE_CREDENTIALS_GUIDE.md)**
+
+Ce guide couvre :
+- ✅ Création d'un projet Google Cloud
+- ✅ Activation des APIs nécessaires
+
+## 📋 Métadonnées IPTC/XMP
+
+L'application écrit automatiquement des métadonnées enrichies dans vos images selon les standards IPTC et XMP. Ces métadonnées sont compatibles avec Adobe Lightroom, Photoshop, Bridge et la plupart des logiciels de gestion d'images professionnels.
+
+### Champs de métadonnées écrits
+
+| Champ JSON | Champ XMP | Champ IPTC | Description |
+|------------|-----------|------------|-------------|
+| `title` | `Xmp.dc.title` | `Iptc.Application2.ObjectName` | Titre principal de l'image |
+| `description` + `comment` | `Xmp.dc.description` | `Iptc.Application2.Caption` | Description complète combinée |
+| `keywords` + genres | `Xmp.dc.subject` | `Iptc.Application2.Keywords` | Mots-clés et catégories |
+| `main_genre` | `Xmp.Iptc4xmpCore.Category` | `Iptc.Application2.Category` | Genre principal |
+| `secondary_genre` | `Xmp.Iptc4xmpCore.SupplementalCategories` | `Iptc.Application2.SuppCategory` | Genre secondaire |
+
+### Proposition d'amélioration : Champ "Story"
+
+**Nouveau champ proposé** : `story`  
+**Description** : Présentation lyrique, artistique ou commerciale. Une histoire racontée qui fait penseur ou rêver.  
+**Mapping XMP suggéré** : `Xmp.photoshop.Instructions`  
+**Usage** : Narration créative, description poétique, histoire inspirante
+
+**Exemple de "story"** :
+```
+"Dans un monde où les rouages du temps s'entremêlent aux pétales de l'éternité, 
+cette rose mécanique raconte l'histoire d'un amour impossible entre l'âme et la machine. 
+Chaque engrenage murmure une promesse, chaque chaîne tisse un rêve..."
+```
+
+### Documentation complète
+
+Pour une documentation détaillée des métadonnées, consultez :
+
+📖 **[metadata.md](metadata.md)**
+
+Ce guide technique couvre :
+- ✅ Mapping complet JSON ↔ IPTC/XMP
+- ✅ Standards et compatibilité logicielle
+- ✅ Traitement spécial par format (JPG/PNG)
+- ✅ Proposition détaillée du champ "story"
+- ✅ Références techniques et exemples
+- ✅ Création d'un compte de service
+- ✅ Téléchargement des identifiants JSON
+- ✅ Résolution des erreurs courantes
+- ✅ Différences entre API Key et Service Account
+
+### Erreurs récemment corrigées
+
+**❌ "client_options.api_key and credentials are mutually exclusive"**
+- **Cause** : Conflit entre l'utilisation simultanée d'une API key et d'un service account
+- **✅ Solution** : L'application utilise maintenant exclusivement les service accounts
+- **Status** : Corrigé dans la version actuelle
+
+**❌ "You exceeded your current quota"**
+- **Cause** : Quotas API dépassés
+- **✅ Solution** : Consultez le guide pour configurer des quotas appropriés
+
+## 📝 Changelog
+
+### Version actuelle (2025-01-19)
+
+**🔧 Corrections importantes :**
+- Résolution du conflit entre API key et service account credentials
+- Amélioration de la gestion des erreurs d'authentification Gemini
+- Suppression automatique des variables d'environnement conflictuelles
+- Configuration exclusive des service accounts pour plus de sécurité
+
+**📚 Documentation :**
+- Ajout du guide complet pour les identifiants Google Cloud
+- Instructions détaillées pour résoudre les erreurs de quota
+- Clarification des différences entre API Key et Service Account
+
+**🛠️ Améliorations techniques :**
+- Meilleure isolation des configurations d'authentification
+- Logs plus informatifs pour le débogage
+- Gestion robuste des tentatives de connexion
+
+Pour l'historique complet, consultez [changelog.md](changelog.md)
 
 ## 🤝 Contribution
 

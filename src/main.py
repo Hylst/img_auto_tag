@@ -1,4 +1,5 @@
 import os
+# The usual suspects - our trusty imports! 📦
 import sys
 import json
 import logging
@@ -11,24 +12,31 @@ from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.table import Table
 from rich import print as rprint
-from src.config import initialize_apis, check_credentials
+from src.config import initialize_apis, check_credentials, select_gemini_model
 from src.image_processor import ImageProcessor
 
-# Configuration du logger enrichi
+# Setting up our fancy logger - because plain text is so last century! ✨
 console = Console()
 logging.basicConfig(
     level=logging.INFO,
-    format="%(message)s",
-    handlers=[RichHandler(rich_tracebacks=True, console=console)]
+    format="%(message)s",  # Keep it simple, stupid! 🤓
+    handlers=[RichHandler(rich_tracebacks=True, console=console)]  # Rich makes everything better! 💎
 )
-logger = logging.getLogger("image_tagger")
+logger = logging.getLogger("image_tagger")  # Our chatty companion 🗣️
 
 def validate_inputs(args):
-    """Valide les entrées du programme et affiche des informations utiles"""
+    """
+    The bouncer of our application - checking IDs at the door! 🕴️
+    
+    Makes sure everything is in order before we start the party.
+    No ticket, no entry! 🎫
+    """
+    # Does this path actually exist, or are we chasing ghosts? 👻
     if not os.path.exists(args.input_path):
         logger.error(f"❌ Chemin d'entrée non trouvé: {args.input_path}")
         return False
     
+    # Credentials check - show me your papers! 📋
     if not os.path.exists(args.credentials):
         logger.error(f"❌ Fichier d'identifiants non trouvé: {args.credentials}")
         return False
@@ -69,34 +77,47 @@ def validate_inputs(args):
     return True
 
 def show_banner():
-    """Affiche une bannière de bienvenue pour le programme"""
+    """
+    Roll out the red carpet! 🎭
+    
+    Because every great application deserves a dramatic entrance.
+    It's showtime, folks! 🎪
+    """
     banner = Panel(
         "[bold magenta]Image Metadata Auto-Tagger[/bold magenta] [yellow]🖼️🤖[/yellow]\n"
         "[cyan]Outil d'analyse d'images avec Google Vision + Gemini AI[/cyan]\n"
         "[green]Par Geoffroy Streit (Hylst)[/green]",
         expand=False,
-        border_style="blue"
+        border_style="blue"  # Blue like the sky of possibilities! 🌌
     )
     console.print(banner)
 
 def show_summary(results, start_time):
-    """Affiche un résumé des opérations effectuées"""
+    """
+    The grand finale! 🎊
+    
+    Time to tally up our victories and learn from our defeats.
+    Every good story needs an ending! 📖
+    """
     if not results:
-        logger.warning("⚠️ Aucun résultat à afficher")
+        logger.warning("⚠️ Aucun résultat à afficher")  # Empty handed? That's unusual! 🤷‍♂️
         return
     
-    successful = [r for r in results if "error" not in r]
-    failed = [r for r in results if "error" in r]
+    # Sorting the wheat from the chaff 🌾
+    successful = [r for r in results if "error" not in r]  # The champions! 🏆
+    failed = [r for r in results if "error" in r]          # The learning opportunities 📚
     
     table = Table(title="Résumé du traitement")
     table.add_column("Métrique", style="cyan")
     table.add_column("Valeur", style="green")
     
+    # The numbers don't lie! 📊
     table.add_row("Images traitées", str(len(results)))
     table.add_row("Succès", f"{len(successful)} ({len(successful)/max(1, len(results))*100:.1f}%)")
     table.add_row("Échecs", f"{len(failed)} ({len(failed)/max(1, len(results))*100:.1f}%)")
     table.add_row("Temps d'exécution", f"{time.time() - start_time:.2f} secondes")
     
+    # Calculate average time if we have successful results 🕐
     if len(successful) > 0:
         avg_time = sum(r.get("processing_time", 0) for r in successful) / len(successful)
         table.add_row("Temps moyen/image", f"{avg_time:.2f} secondes")
@@ -112,21 +133,27 @@ def show_summary(results, start_time):
             console.print(f"  ... et {len(failed) - 3} autres échecs (voir le fichier journal pour les détails)")
 
 def setup_logging(verbose_level):
-    """Configure le niveau de journalisation en fonction du niveau de verbosité"""
+    """
+    The volume control for our chatty application! 🔊
+    
+    From whisper-quiet to full-blown karaoke mode.
+    Choose your noise level wisely! 🎤
+    """
+    # The verbosity scale: from monk-like silence to chatty parrot 🦜
     levels = {
-        0: logging.WARNING,
-        1: logging.INFO,
-        2: logging.DEBUG,
-        3: logging.DEBUG  # Niveau très détaillé (mais toujours DEBUG)
+        0: logging.WARNING,   # Shhh! Only emergencies! 🤫
+        1: logging.INFO,      # Normal conversation level 💬
+        2: logging.DEBUG,     # Getting chatty now! 🗣️
+        3: logging.DEBUG      # Full disclosure mode! 📢
     }
     logging.getLogger().setLevel(levels.get(verbose_level, logging.INFO))
     
     if verbose_level >= 3:
-        # Activer la journalisation des bibliothèques tierces
+        # Let the third-party libraries join the conversation! 🎉
         logging.getLogger("PIL").setLevel(logging.INFO)
         logging.getLogger("google").setLevel(logging.INFO)
     else:
-        # Réduire le bruit des bibliothèques tierces
+        # Keep the third-party chatter to a minimum 🤐
         logging.getLogger("PIL").setLevel(logging.WARNING)
         logging.getLogger("google").setLevel(logging.WARNING)
     
@@ -171,9 +198,13 @@ def main():
         sys.exit(1)
     
     try:
+        # Sélection interactive du modèle Gemini
+        logger.info("🤖 Sélection du modèle Gemini...")
+        selected_model = select_gemini_model()
+        
         # Initialisation des APIs
         logger.info("🔄 Initialisation des APIs Google...")
-        vision_client, gemini_model = initialize_apis(args.credentials, args.project)
+        vision_client, gemini_model = initialize_apis(args.credentials, args.project, selected_model)
         input_path = Path(args.input_path)  # Définir input_path ici    
         # Ajuster le nombre de workers au nombre de fichiers
         if input_path.is_dir():
