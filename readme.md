@@ -14,10 +14,12 @@ Un outil Python puissant pour l'analyse automatique d'images et la génération 
 - [Prérequis](#-prérequis)
 - [Installation](#-installation)
 - [Configuration](#-configuration)
+- [Guide des identifiants Google Cloud](#-guide-des-identifiants-google-cloud)
 - [Utilisation](#-utilisation)
 - [Structure du projet](#-structure-du-projet)
 - [Exemples de sortie](#-exemples-de-sortie)
 - [Résolution des problèmes courants](#-résolution-des-problèmes-courants)
+- [Changelog](#-changelog)
 - [Contribution](#-contribution)
 - [Licence](#-licence)
 
@@ -266,6 +268,53 @@ Si vous rencontrez des erreurs liées aux APIs Google:
 - Assurez-vous que votre compte de service a les permissions nécessaires
 - Vérifiez votre connexion internet
 - Augmentez le nombre de tentatives avec --retry 5
+
+## 🔑 Guide des identifiants Google Cloud
+
+Pour obtenir des identifiants Google Cloud et résoudre les problèmes de configuration, consultez le guide détaillé :
+
+📖 **[GOOGLE_CREDENTIALS_GUIDE.md](GOOGLE_CREDENTIALS_GUIDE.md)**
+
+Ce guide couvre :
+- ✅ Création d'un projet Google Cloud
+- ✅ Activation des APIs nécessaires
+- ✅ Création d'un compte de service
+- ✅ Téléchargement des identifiants JSON
+- ✅ Résolution des erreurs courantes
+- ✅ Différences entre API Key et Service Account
+
+### Erreurs récemment corrigées
+
+**❌ "client_options.api_key and credentials are mutually exclusive"**
+- **Cause** : Conflit entre l'utilisation simultanée d'une API key et d'un service account
+- **✅ Solution** : L'application utilise maintenant exclusivement les service accounts
+- **Status** : Corrigé dans la version actuelle
+
+**❌ "You exceeded your current quota"**
+- **Cause** : Quotas API dépassés
+- **✅ Solution** : Consultez le guide pour configurer des quotas appropriés
+
+## 📝 Changelog
+
+### Version actuelle (2025-01-19)
+
+**🔧 Corrections importantes :**
+- Résolution du conflit entre API key et service account credentials
+- Amélioration de la gestion des erreurs d'authentification Gemini
+- Suppression automatique des variables d'environnement conflictuelles
+- Configuration exclusive des service accounts pour plus de sécurité
+
+**📚 Documentation :**
+- Ajout du guide complet pour les identifiants Google Cloud
+- Instructions détaillées pour résoudre les erreurs de quota
+- Clarification des différences entre API Key et Service Account
+
+**🛠️ Améliorations techniques :**
+- Meilleure isolation des configurations d'authentification
+- Logs plus informatifs pour le débogage
+- Gestion robuste des tentatives de connexion
+
+Pour l'historique complet, consultez [changelog.md](changelog.md)
 
 ## 🤝 Contribution
 

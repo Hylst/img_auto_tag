@@ -110,13 +110,19 @@ def initialize_apis(credentials_path: str, project_id: str, retry_limit: int = 3
     
     while retry_count < retry_limit:
         try:
-            # Configuration pour Gemini
+            # Configuration pour Gemini - utiliser uniquement les credentials du service account
             logger.info("🔄 Initialisation de Gemini...")
+            
+            # Vérifier si une API key est définie dans l'environnement et la supprimer temporairement
+            import os
+            api_key_backup = os.environ.pop('GEMINI_API_KEY', None)
+            
+            # Configurer Gemini avec les credentials du service account uniquement
             genai.configure(credentials=credentials)
             
             # Création du modèle Gemini
             gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-            logger.info("✓ Gemini initialisé")
+            logger.info("✓ Gemini initialisé avec les credentials du service account")
             break
         except (DefaultCredentialsError, GoogleAuthError) as e:
             logger.error(f"❌ Erreur d'authentification Gemini: {str(e)}")
