@@ -664,6 +664,7 @@ class ImageProcessor:
                 
                 # Stratégie 1: Écriture normale avec pyexiv2
                 try:
+                    # Tentative d'ouverture de l'image avec pyexiv2
                     with pyexiv2.Image(str(image_path)) as img:
                         # XMP (plus universel et robuste)
                         xmp_data = {
@@ -825,27 +826,60 @@ class ImageProcessor:
             return False
     
     def _write_jpg_metadata_simple(self, image_path: pathlib.Path, metadata: dict, full_description: str, keywords: list) -> bool:
-        """Écriture métadonnées JPG avec approche simplifiée"""
+        """Écriture métadonnées JPG avec approche alternative sans pyexiv2"""
         try:
-            # Créer une nouvelle instance pyexiv2 avec gestion d'erreur renforcée
-            with pyexiv2.Image(str(image_path)) as img:
-                # Essayer d'écrire uniquement les métadonnées XMP essentielles
-                minimal_xmp = {
-                    'Xmp.dc.title': metadata.get('title', ''),
-                    'Xmp.dc.description': full_description
-                }
+            # Utiliser PIL pour créer une nouvelle image avec métadonnées intégrées
+            # Cette méthode évite complètement les EXIF corrompus
+            from PIL import Image as PILImage
+            from PIL.ExifTags import TAGS
+            import tempfile
+            import shutil
+            
+            if self.verbose >= 2:
+                logger.info(f"🔧 Utilisation de PIL pour contourner les EXIF corrompus")
+            
+            # Ouvrir l'image avec PIL (ignore les EXIF corrompus)
+            with PILImage.open(image_path) as img:
+                # Convertir en RGB si nécessaire
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
                 
-                # Ajouter les mots-clés si possible
-                if keywords:
-                    try:
-                        minimal_xmp['Xmp.dc.subject'] = keywords[:10]  # Limiter à 10 mots-clés
-                    except:
-                        pass
+                # Créer un fichier temporaire
+                with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as temp_file:
+                    temp_path = temp_file.name
                 
-                img.modify_xmp(minimal_xmp)
+                # Sauvegarder l'image sans les EXIF corrompus
+                img.save(temp_path, 'JPEG', quality=95, optimize=True)
+            
+            # Maintenant essayer d'ajouter les métadonnées XMP avec pyexiv2 sur l'image "propre"
+            try:
+                with pyexiv2.Image(temp_path) as clean_img:
+                    minimal_xmp = {
+                        'Xmp.dc.title': metadata.get('title', ''),
+                        'Xmp.dc.description': full_description
+                    }
+                    
+                    if keywords:
+                        minimal_xmp['Xmp.dc.subject'] = keywords[:10]
+                    
+                    clean_img.modify_xmp(minimal_xmp)
+                
+                # Remplacer l'image originale par la version nettoyée avec métadonnées
+                shutil.move(temp_path, str(image_path))
+                
+                if self.verbose >= 2:
+                    logger.info(f"✅ Image nettoyée et métadonnées ajoutées: {image_path.name}")
+                
                 return True
+                
+            except Exception as xmp_error:
+                # Si même l'image nettoyée échoue, au moins on a une image sans EXIF corrompus
+                shutil.move(temp_path, str(image_path))
+                if self.verbose >= 2:
+                    logger.warning(f"⚠️ Image nettoyée mais métadonnées non ajoutées: {str(xmp_error)}")
+                return False
                 
         except Exception as e:
             if self.verbose >= 2:
-                logger.error(f"❌ Échec JPG fallback: {str(e)}")
+                logger.error(f"❌ Échec JPG fallback PIL: {str(e)}")
             return False

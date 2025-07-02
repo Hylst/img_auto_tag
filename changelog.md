@@ -1,6 +1,21 @@
 ## [En cours] - 2024-XX-XX
 
 ### Ajouté
+- **Script metadata_manager.py** : Gestionnaire autonome de métadonnées d'images
+  - Extraction de métadonnées d'images (JPG, JPEG, PNG) vers fichier JSON
+  - Application de métadonnées depuis fichier JSON vers images correspondantes
+  - Support des métadonnées XMP et IPTC
+  - Gestion robuste des erreurs avec méthodes de fallback
+  - Interface en ligne de commande avec mode verbeux
+  - Script de démonstration (demo_metadata_manager.py)
+  - Script de test automatisé (test_metadata_manager.py)
+- **Guide d'amélioration CODE_QUALITY_IMPROVEMENTS.md** : Recommandations détaillées
+  - Suggestions d'architecture et refactoring
+  - Stratégies de tests et validation
+  - Optimisations de performance
+  - Bonnes pratiques de sécurité
+  - Roadmap de développement futur
+
 - Refactorisation majeure et amélioration de `extract_meta_utf8.py`:
   - Ajout de documentation complète (docstrings et commentaires détaillés)
   - Architecture modulaire avec fonctions séparées (`get_image_files`, `extract_metadata`, `clear_metadata_batch`, `write_author_metadata`, `display_menu`, `main`)
@@ -19,6 +34,19 @@
   - Menu étendu avec 8 options pour une navigation complète
   - Support parfait des accents français dans tous les affichages
   - Formatage amélioré avec sections organisées et émojis descriptifs
+
+### Modifié
+- **Amélioration de la gestion des erreurs EXIF** dans image_processor.py
+  - Gestion robuste des répertoires EXIF corrompus (Sony1, Canon avec trop d'entrées)
+  - Méthode de fallback avec nettoyage PIL pour contourner les EXIF problématiques
+  - Stratégie d'écriture en cascade avec plusieurs niveaux de fallback
+  - Logging amélioré pour le diagnostic des problèmes de métadonnées
+
+### Corrigé
+- **Erreurs de métadonnées** : "Directory Sony1/Canon with XXXX entries considered invalid"
+- **Écriture de métadonnées** : Les métadonnées sont maintenant écrites même sur les images avec EXIF corrompus
+- **Robustesse** : Le traitement continue même en cas d'erreur de lecture des métadonnées existantes
+- **Comptage doublé dans metadata_manager.py** : Correction du bug qui comptait chaque image deux fois (extensions minuscules + majuscules)
 
 ## [2024-12-19] - Correction des métadonnées manquantes et amélioration du débogage
 
