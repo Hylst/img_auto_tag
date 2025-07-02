@@ -623,17 +623,22 @@ class ImageProcessor:
     def _write_metadata(self, image_path: pathlib.Path, metadata: dict) -> bool:
             """Écrit les métadonnées avec plus d'informations sur le processus"""
             try:
-                # Vérification préalable des métadonnées existantes
+                # Vérification préalable des métadonnées existantes (optionnelle)
+                # Cette étape peut échouer sur certaines images avec des EXIF corrompus
                 try:
-                    existing_metadata = {}
                     with pyexiv2.Image(str(image_path)) as img:
                         if self.verbose >= 3:
-                            existing_xmp = img.read_xmp()
-                            existing_iptc = img.read_iptc() if image_path.suffix.lower() in ('.jpg', '.jpeg') else {}
-                            logger.debug(f"📋 Métadonnées existantes : {len(existing_xmp)} XMP, {len(existing_iptc)} IPTC")
+                            try:
+                                existing_xmp = img.read_xmp()
+                                existing_iptc = img.read_iptc() if image_path.suffix.lower() in ('.jpg', '.jpeg') else {}
+                                logger.debug(f"📋 Métadonnées existantes : {len(existing_xmp)} XMP, {len(existing_iptc)} IPTC")
+                            except Exception as read_error:
+                                logger.debug(f"⚠️ Impossible de lire les métadonnées existantes: {str(read_error)}")
+                                logger.debug("ℹ️ Cela peut être dû à des répertoires EXIF corrompus ou trop volumineux")
                 except Exception as e:
                     if self.verbose >= 2:
-                        logger.info(f"ℹ️ Pas de métadonnées existantes ou erreur de lecture: {str(e)}")
+                        logger.info(f"ℹ️ Erreur lors de l'ouverture pour lecture des métadonnées: {str(e)}")
+                        logger.info("ℹ️ Tentative d'écriture des nouvelles métadonnées malgré tout...")
                 
                 # Préparation des mots-clés
                 keywords = []
@@ -654,38 +659,64 @@ class ImageProcessor:
                     logger.debug(f"🔑 Mots-clés préparés : {keywords}")
                     logger.debug(f"📝 Description: {len(full_description)} caractères")
 
-                with pyexiv2.Image(str(image_path)) as img:
-                    # XMP
-                    xmp_data = {
-                        'Xmp.dc.title': metadata.get('title', ''),
-                        'Xmp.dc.description': full_description,
-                        'Xmp.dc.subject': keywords,
-                        'Xmp.Iptc4xmpCore.Category': metadata.get('main_genre', ''),
-                        'Xmp.Iptc4xmpCore.SupplementalCategories': [metadata.get('secondary_genre', '')],
-                        'Xmp.photoshop.Instructions': metadata.get('story', '')
-                    }
-                    
-                    if self.verbose >= 3:
-                        logger.debug(f"📝 Écriture XMP : {len(xmp_data)} champs")
-                    
-                    img.modify_xmp(xmp_data)
-
-                    # IPTC pour JPG
-                    if image_path.suffix.lower() in ('.jpg', '.jpeg'):
-                        iptc_data = {
-                            'Iptc.Envelope.CharacterSet': '\x1b%G',
-                            'Iptc.Application2.ObjectName': metadata.get('title', ''),
-                            'Iptc.Application2.Headline': metadata.get('title', ''),
-                            'Iptc.Application2.Caption': full_description,
-                            'Iptc.Application2.Keywords': keywords,
-                            'Iptc.Application2.Category': metadata.get('main_genre', ''),
-                            'Iptc.Application2.SuppCategory': metadata.get('secondary_genre', '')
+                # Tentative d'écriture des métadonnées avec gestion robuste des erreurs
+                metadata_written = False
+                
+                # Stratégie 1: Écriture normale avec pyexiv2
+                try:
+                    with pyexiv2.Image(str(image_path)) as img:
+                        # XMP (plus universel et robuste)
+                        xmp_data = {
+                            'Xmp.dc.title': metadata.get('title', ''),
+                            'Xmp.dc.description': full_description,
+                            'Xmp.dc.subject': keywords,
+                            'Xmp.Iptc4xmpCore.Category': metadata.get('main_genre', ''),
+                            'Xmp.Iptc4xmpCore.SupplementalCategories': [metadata.get('secondary_genre', '')],
+                            'Xmp.photoshop.Instructions': metadata.get('story', '')
                         }
                         
                         if self.verbose >= 3:
-                            logger.debug(f"📝 Écriture IPTC : {len(iptc_data)} champs")
+                            logger.debug(f"📝 Écriture XMP : {len(xmp_data)} champs")
                         
-                        img.modify_iptc(iptc_data)
+                        img.modify_xmp(xmp_data)
+                        metadata_written = True
+                        
+                        # IPTC pour JPG (optionnel, peut échouer sur certaines images)
+                        if image_path.suffix.lower() in ('.jpg', '.jpeg'):
+                            try:
+                                iptc_data = {
+                                    'Iptc.Envelope.CharacterSet': '\x1b%G',
+                                    'Iptc.Application2.ObjectName': metadata.get('title', ''),
+                                    'Iptc.Application2.Headline': metadata.get('title', ''),
+                                    'Iptc.Application2.Caption': full_description,
+                                    'Iptc.Application2.Keywords': keywords,
+                                    'Iptc.Application2.Category': metadata.get('main_genre', ''),
+                                    'Iptc.Application2.SuppCategory': metadata.get('secondary_genre', '')
+                                }
+                                
+                                if self.verbose >= 3:
+                                    logger.debug(f"📝 Écriture IPTC : {len(iptc_data)} champs")
+                                
+                                img.modify_iptc(iptc_data)
+                            except Exception as iptc_error:
+                                if self.verbose >= 2:
+                                    logger.warning(f"⚠️ Échec écriture IPTC (XMP conservé): {str(iptc_error)}")
+                                
+                except Exception as write_error:
+                    if self.verbose >= 2:
+                        logger.warning(f"⚠️ Échec écriture pyexiv2: {str(write_error)}")
+                        logger.info("🔄 Tentative avec méthode alternative...")
+                    
+                    # Stratégie 2: Fallback pour les images problématiques
+                    if not metadata_written:
+                        try:
+                            self._write_metadata_fallback(image_path, metadata, full_description, keywords)
+                            metadata_written = True
+                            if self.verbose >= 2:
+                                logger.info("✅ Métadonnées écrites avec méthode alternative")
+                        except Exception as fallback_error:
+                            if self.verbose >= 1:
+                                logger.error(f"❌ Échec complet écriture métadonnées: {str(fallback_error)}")
 
                 # Traitement spécial PNG
                 if image_path.suffix.lower() == '.png':
@@ -725,13 +756,96 @@ class ImageProcessor:
                         
                         img.save(image_path, pnginfo=png_info, optimize=True)
 
-                if self.verbose >= 2:
+                if self.verbose >= 2 and metadata_written:
                     logger.info("✅ Métadonnées écrites avec succès")
                     
-                return True
+                return metadata_written
             except Exception as e:
                 logger.error(f"❌ Erreur d'écriture des métadonnées : {str(e)}")
                 if self.verbose >= 3:
                     import traceback
                     logger.debug(f"Détails de l'erreur: {traceback.format_exc()}")
                 return False
+    
+    def _write_metadata_fallback(self, image_path: pathlib.Path, metadata: dict, full_description: str, keywords: list) -> bool:
+        """Méthode de fallback pour écrire les métadonnées sur les images problématiques"""
+        try:
+            if self.verbose >= 2:
+                logger.info(f"🔧 Utilisation de la méthode fallback pour {image_path.name}")
+            
+            # Pour les PNG, utiliser uniquement la méthode PIL
+            if image_path.suffix.lower() == '.png':
+                return self._write_png_metadata_only(image_path, metadata, full_description, keywords)
+            
+            # Pour les JPG, essayer une approche plus simple avec pyexiv2
+            elif image_path.suffix.lower() in ('.jpg', '.jpeg'):
+                return self._write_jpg_metadata_simple(image_path, metadata, full_description, keywords)
+            
+            else:
+                if self.verbose >= 2:
+                    logger.warning(f"⚠️ Format non supporté pour fallback: {image_path.suffix}")
+                return False
+                
+        except Exception as e:
+            if self.verbose >= 2:
+                logger.error(f"❌ Échec méthode fallback: {str(e)}")
+            return False
+    
+    def _write_png_metadata_only(self, image_path: pathlib.Path, metadata: dict, full_description: str, keywords: list) -> bool:
+        """Écriture métadonnées PNG uniquement avec PIL"""
+        try:
+            with Image.open(image_path) as img:
+                png_info = PngInfo()
+                
+                # Métadonnées de base
+                png_info.add_text('Title', metadata.get('title', ''))
+                png_info.add_text('Description', full_description)
+                png_info.add_text('Keywords', ', '.join(keywords))
+                png_info.add_text('Genre', metadata.get('main_genre', ''))
+                
+                # XMP simplifié
+                xmp_packet = f"""<?xpacket begin='\ufeff' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+        <rdf:Description rdf:about=""
+            xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <dc:title>{escape(metadata.get('title',''))}</dc:title>
+            <dc:description>{escape(full_description)}</dc:description>
+        </rdf:Description>
+    </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end='w'?>"""
+                png_info.add_text('XML:com.adobe.xmp', xmp_packet)
+                
+                img.save(image_path, pnginfo=png_info, optimize=True)
+                return True
+        except Exception as e:
+            if self.verbose >= 2:
+                logger.error(f"❌ Échec PNG fallback: {str(e)}")
+            return False
+    
+    def _write_jpg_metadata_simple(self, image_path: pathlib.Path, metadata: dict, full_description: str, keywords: list) -> bool:
+        """Écriture métadonnées JPG avec approche simplifiée"""
+        try:
+            # Créer une nouvelle instance pyexiv2 avec gestion d'erreur renforcée
+            with pyexiv2.Image(str(image_path)) as img:
+                # Essayer d'écrire uniquement les métadonnées XMP essentielles
+                minimal_xmp = {
+                    'Xmp.dc.title': metadata.get('title', ''),
+                    'Xmp.dc.description': full_description
+                }
+                
+                # Ajouter les mots-clés si possible
+                if keywords:
+                    try:
+                        minimal_xmp['Xmp.dc.subject'] = keywords[:10]  # Limiter à 10 mots-clés
+                    except:
+                        pass
+                
+                img.modify_xmp(minimal_xmp)
+                return True
+                
+        except Exception as e:
+            if self.verbose >= 2:
+                logger.error(f"❌ Échec JPG fallback: {str(e)}")
+            return False

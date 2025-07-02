@@ -1,6 +1,7 @@
 import os
 # The usual suspects - our trusty imports! 📦
 import sys
+import os
 import json
 import logging
 import argparse
@@ -132,6 +133,84 @@ def show_summary(results, start_time):
         if len(failed) > 3:
             console.print(f"  ... et {len(failed) - 3} autres échecs (voir le fichier journal pour les détails)")
 
+def generate_metadata_json(results, input_path):
+    """
+    Génère un fichier metadata.json dans le répertoire des images avec le format spécifié
+    
+    Args:
+        results: Liste des résultats de traitement
+        input_path: Chemin du répertoire d'entrée
+    """
+    try:
+        input_dir = Path(input_path)
+        if input_dir.is_file():
+            input_dir = input_dir.parent
+        
+        metadata_file = input_dir / "metadata.json"
+        
+        # Traiter chaque résultat pour créer le format metadata.json
+        metadata_entries = []
+        
+        for result in results:
+            if "error" in result:
+                continue  # Ignorer les résultats avec erreurs
+            
+            # Calculer la taille du fichier
+            file_path = Path(result.get("path", ""))
+            file_size = "0 kB"
+            if file_path.exists():
+                size_bytes = file_path.stat().st_size
+                if size_bytes < 1024:
+                    file_size = f"{size_bytes} B"
+                elif size_bytes < 1024 * 1024:
+                    file_size = f"{size_bytes // 1024} kB"
+                else:
+                    file_size = f"{size_bytes // (1024 * 1024)} MB"
+            
+            # Déterminer le type MIME
+            file_ext = file_path.suffix.lower() if file_path else ""
+            mime_type = "image/jpeg" if file_ext in [".jpg", ".jpeg"] else "image/png"
+            
+            # Construire l'entrée metadata
+            metadata_entry = {
+                "Fichier": result.get("new_file", result.get("original_file", "")),
+                "Taille": file_size,
+                "Type": mime_type,
+                "Largeur": result.get("original_dimensions", [0, 0])[0],
+                "Hauteur": result.get("original_dimensions", [0, 0])[1],
+                "Categorie": result.get("main_genre", ""),
+                "Categorie secondaire": result.get("secondary_genre", ""),
+                "Createur": "Geoffroy Streit / Hylst",  # Valeur par défaut comme dans l'exemple
+                "Description": result.get("description", ""),
+                "Mots cles": result.get("keywords", []),
+                "Titre": result.get("title", ""),
+                "Caracteristiques": result.get("keywords", []),
+                "Perception": result.get("story", ""),
+                "Conte": result.get("comment", "")
+            }
+            
+            metadata_entries.append(metadata_entry)
+        
+        # Sauvegarder le fichier metadata.json
+        if metadata_entries:
+            with open(metadata_file, "w", encoding="utf-8") as f:
+                if len(metadata_entries) == 1:
+                    # Un seul fichier, sauvegarder directement l'objet
+                    json.dump(metadata_entries[0], f, indent=2, ensure_ascii=False)
+                else:
+                    # Plusieurs fichiers, sauvegarder comme tableau
+                    json.dump(metadata_entries, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"📋 Fichier metadata.json généré: [bold]{metadata_file}[/bold]")
+            return str(metadata_file)
+        else:
+            logger.warning("⚠️ Aucune métadonnée valide à sauvegarder")
+            return None
+            
+    except Exception as e:
+        logger.error(f"❌ Erreur lors de la génération du metadata.json: {str(e)}")
+        return None
+
 def setup_logging(verbose_level):
     """
     The volume control for our chatty application! 🔊
@@ -257,6 +336,12 @@ def main():
             with open(args.output, "w", encoding='utf-8') as f:
                 json.dump(results, f, indent=2, ensure_ascii=False)
                 logger.info(f"💾 Résultat enregistré dans [bold]{args.output}[/bold]")
+        
+        # Générer le fichier metadata.json dans le répertoire des images
+        if results:
+            metadata_file = generate_metadata_json(results, args.input_path)
+            if metadata_file and args.verbose >= 1:
+                logger.info(f"📋 Métadonnées supplémentaires sauvegardées: [bold]{Path(metadata_file).name}[/bold]")
         
         # Afficher le résumé
         show_summary(results, start_time)
