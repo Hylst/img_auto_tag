@@ -6,11 +6,78 @@ Ce répertoire contient des scripts utilitaires pour la gestion des métadonnée
 
 ### Scripts principaux
 
+- **`paginate_metadata.py`** - Paginateur de métadonnées pour galeries web
 - **`metadata_manager.py`** - Gestionnaire principal de métadonnées
 - **`demo_metadata_manager.py`** - Script de démonstration
 - **`test_metadata_manager.py`** - Tests automatisés
 - **`extract_meta_utf8.py`** - Extracteur de métadonnées (existant)
 - **`clear_and_write_metadata.py`** - Nettoyeur de métadonnées (existant)
+
+## 📄 paginate_metadata.py
+
+### Fonctionnalités
+
+1. **Pagination automatique** : Division d'un fichier `metadata.json` en pages de 30 images maximum
+2. **Création de dossiers** : Génération automatique de sous-dossiers numérotés (1, 2, 3, ...)
+3. **Copie d'images** : Transfert automatique des fichiers images dans les dossiers correspondants
+4. **Préparation web** : Structure prête à l'emploi pour galeries web paginées
+
+### Utilisation
+
+```bash
+# Exécuter dans le répertoire contenant metadata.json et les images
+cd /chemin/vers/vos/images
+python ../scripts_acc/paginate_metadata.py
+```
+
+### Fonctionnement
+
+1. **Scan** : Recherche automatique de `metadata.json` dans le répertoire courant
+2. **Analyse** : Calcul du nombre de pages nécessaires (30 images max par page)
+3. **Création** : Génération des dossiers numérotés
+4. **Division** : Répartition des métadonnées en fichiers JSON paginés
+5. **Copie** : Transfert des images correspondantes dans chaque dossier
+
+### Structure générée
+
+```
+répertoire_source/
+├── metadata.json (original)
+├── image1.jpg
+├── image2.jpg
+├── ...
+├── 1/
+│   ├── metadata.json (images 1-30)
+│   ├── image1.jpg
+│   ├── image2.jpg
+│   └── ...
+├── 2/
+│   ├── metadata.json (images 31-60)
+│   ├── image31.jpg
+│   └── ...
+└── 3/
+    ├── metadata.json (images 61-90)
+    └── ...
+```
+
+### Gestion d'erreurs
+
+- **Fichier manquant** : Vérification de l'existence de `metadata.json`
+- **Images manquantes** : Rapport des fichiers non trouvés
+- **Permissions** : Gestion des erreurs de copie de fichiers
+- **JSON invalide** : Validation du format des métadonnées
+
+### Rapport d'exécution
+
+```
+📄 Pagination de metadata.json
+📊 Nombre total d'images : 85
+📁 Nombre de pages créées : 3
+✅ Page 1 : 30 images copiées
+✅ Page 2 : 30 images copiées
+✅ Page 3 : 25 images copiées
+🎉 Pagination terminée avec succès !
+```
 
 ## 🔧 metadata_manager.py
 
@@ -117,14 +184,23 @@ python scripts_acc/test_metadata_manager.py
 
 ## 🔄 Cas d'usage typiques
 
-### 1. Sauvegarde des métadonnées
+### 1. Préparation de galerie web paginée
+
+```bash
+# Après avoir généré metadata.json avec main.py
+cd ./mes_images_analysees
+python ../scripts_acc/paginate_metadata.py
+# Résultat : dossiers 1/, 2/, 3/... prêts pour galerie web
+```
+
+### 2. Sauvegarde des métadonnées
 
 ```bash
 # Extraire toutes les métadonnées avant modification
 python scripts_acc/metadata_manager.py extract ./mes_images sauvegarde_metadata.json
 ```
 
-### 2. Migration de métadonnées
+### 3. Migration de métadonnées
 
 ```bash
 # Extraire depuis un répertoire source
@@ -134,7 +210,7 @@ python scripts_acc/metadata_manager.py extract ./source metadata_source.json
 python scripts_acc/metadata_manager.py apply metadata_source.json ./destination
 ```
 
-### 3. Édition en lot
+### 4. Édition en lot
 
 1. Extraire les métadonnées existantes
 2. Éditer le fichier JSON avec un éditeur de texte
@@ -146,7 +222,7 @@ python scripts_acc/metadata_manager.py extract ./images metadata.json
 python scripts_acc/metadata_manager.py apply metadata.json ./images
 ```
 
-### 4. Synchronisation avec le système principal
+### 5. Synchronisation avec le système principal
 
 ```bash
 # Utiliser le format compatible avec main.py

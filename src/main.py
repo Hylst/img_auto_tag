@@ -182,9 +182,9 @@ def generate_metadata_json(results, input_path):
                 "Categorie secondaire": result.get("secondary_genre", ""),
                 "Createur": "Geoffroy Streit / Hylst",  # Valeur par défaut comme dans l'exemple
                 "Description": result.get("description", ""),
-                "Mots cles": result.get("keywords", []),
+                "Mots cles": result.get("content_keywords", []),
                 "Titre": result.get("title", ""),
-                "Caracteristiques": result.get("keywords", []),
+                "Caracteristiques": result.get("technical_characteristics", []),
                 "Perception": result.get("story", ""),
                 "Conte": result.get("comment", "")
             }

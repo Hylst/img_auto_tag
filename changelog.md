@@ -1,6 +1,15 @@
 ## [En cours] - 2024-XX-XX
 
 ### Ajouté
+- **Script paginate_metadata.py** : Paginateur de métadonnées pour galeries web
+  - Scan automatique du répertoire courant pour fichier metadata.json
+  - Division automatique en pages de 30 images maximum
+  - Création de sous-dossiers numérotés (1, 2, 3, ...)
+  - Génération de fichiers metadata.json paginés dans chaque dossier
+  - Copie automatique des fichiers images correspondants
+  - Gestion robuste des erreurs et fichiers manquants
+  - Interface utilisateur avec émojis et rapports détaillés
+  - Préparation prête à l'emploi pour systèmes de galeries web
 - **Script metadata_manager.py** : Gestionnaire autonome de métadonnées d'images
   - Extraction de métadonnées d'images (JPG, JPEG, PNG) vers fichier JSON
   - Application de métadonnées depuis fichier JSON vers images correspondantes

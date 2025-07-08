@@ -112,6 +112,7 @@ class ImageProcessor:
         logger.info(f"🧵 Traitement parallèle : [bold]{self.max_workers}[/bold] workers")
 
     def _init_prompts(self):
+        """Initialize prompts with separated content keywords and technical characteristics"""
         self.prompts = {
             "fr": {
                 "main": """Analyse cette image et retourne un JSON avec :
@@ -122,8 +123,12 @@ class ImageProcessor:
                     "story": "Histoire lyrique et artistique qui fait rêver (4-6 phrases narratives)",
                     "main_genre": "Genre principal",
                     "secondary_genre": "Sous-genre", 
-                    "keywords": ["mot1", "mot2"]
-                }""",
+                    "content_keywords": ["sujet1", "objet2", "émotion3"],
+                    "technical_characteristics": ["technique1", "style2", "format3"]
+                }
+                
+Pour content_keywords: identifie ce qui est représenté (sujets, objets, émotions, concepts, ambiances).
+Pour technical_characteristics: identifie les aspects techniques et stylistiques (technique artistique, style, format, couleurs dominantes).""",
                 "comment_instruction": "Rédige une interprétation poétique en 3-5 phrases"
             },
             "en": {
@@ -135,8 +140,12 @@ class ImageProcessor:
                     "story": "Lyrical and artistic story that inspires dreams (4-6 narrative sentences)",
                     "main_genre": "Main genre",
                     "secondary_genre": "Sub-genre",
-                    "keywords": ["word1", "word2"]
-                }""",
+                    "content_keywords": ["subject1", "object2", "emotion3"],
+                    "technical_characteristics": ["technique1", "style2", "format3"]
+                }
+                
+For content_keywords: identify what is represented (subjects, objects, emotions, concepts, moods).
+For technical_characteristics: identify technical and stylistic aspects (artistic technique, style, format, dominant colors).""",
                 "comment_instruction": "Write a poetic interpretation in 3-5 sentences"
             }
         }
@@ -519,12 +528,13 @@ class ImageProcessor:
                         "story": "",
                         "main_genre": "Non classé",
                         "secondary_genre": "",
-                        "keywords": ["image"],
+                        "content_keywords": ["image"],
+                        "technical_characteristics": ["numérique"],
                         "error_gemini": str(e)
                     }
 
     def _validate_metadata(self, data: Dict) -> None:
-        """Valide et complète les métadonnées si nécessaires"""
+        """Validate and complete metadata fields with new separated keywords structure"""
         if not data.get("title"):
             data["title"] = "Image sans titre"
         
@@ -533,12 +543,24 @@ class ImageProcessor:
             
         if not data.get("main_genre"):
             data["main_genre"] = "Non classé"
-            
-        if not data.get("keywords") or not isinstance(data.get("keywords"), list):
-            data["keywords"] = ["image"]
-        elif isinstance(data.get("keywords"), str):
-            # Parfois l'IA renvoie une chaîne au lieu d'une liste
-            data["keywords"] = [k.strip() for k in data["keywords"].split(",")]
+        
+        # Handle content keywords (what is represented)
+        if not data.get("content_keywords") or not isinstance(data.get("content_keywords"), list):
+            data["content_keywords"] = ["image"]
+        elif isinstance(data.get("content_keywords"), str):
+            data["content_keywords"] = [k.strip() for k in data["content_keywords"].split(",")]
+        
+        # Handle technical characteristics (how it's made)
+        if not data.get("technical_characteristics") or not isinstance(data.get("technical_characteristics"), list):
+            data["technical_characteristics"] = ["numérique"]
+        elif isinstance(data.get("technical_characteristics"), str):
+            data["technical_characteristics"] = [k.strip() for k in data["technical_characteristics"].split(",")]
+        
+        # Maintain backward compatibility: create combined keywords for legacy systems
+        combined_keywords = []
+        combined_keywords.extend(data.get("content_keywords", []))
+        combined_keywords.extend(data.get("technical_characteristics", []))
+        data["keywords"] = list(dict.fromkeys([k for k in combined_keywords if k]))  # Remove duplicates
 
     @staticmethod
     def _parse_gemini_response(text: str) -> Dict:
@@ -640,14 +662,16 @@ class ImageProcessor:
                         logger.info(f"ℹ️ Erreur lors de l'ouverture pour lecture des métadonnées: {str(e)}")
                         logger.info("ℹ️ Tentative d'écriture des nouvelles métadonnées malgré tout...")
                 
-                # Préparation des mots-clés
+                # Préparation des mots-clés (combinaison des nouveaux champs)
                 keywords = []
                 if metadata.get('main_genre'):
                     keywords.append(metadata['main_genre'])
                 if metadata.get('secondary_genre'):
                     keywords.append(metadata['secondary_genre'])
-                if metadata.get('keywords') and isinstance(metadata.get('keywords'), list):
-                    keywords.extend(metadata.get('keywords', []))
+                if metadata.get('content_keywords') and isinstance(metadata.get('content_keywords'), list):
+                    keywords.extend(metadata.get('content_keywords', []))
+                if metadata.get('technical_characteristics') and isinstance(metadata.get('technical_characteristics'), list):
+                    keywords.extend(metadata.get('technical_characteristics', []))
                 
                 # Dédoublonnage des mots-clés
                 keywords = list(dict.fromkeys([k for k in keywords if k]))
